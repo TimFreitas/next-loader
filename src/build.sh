@@ -158,6 +158,11 @@ if [ -e "$BUILD_DIR/x64/loader/loader.efi" ]; then
 	echo "======================================"
 
 	#cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/CrScreenshotDxe.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
+	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/GraphicsConsoleDxe.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
+	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/ConSplitterDxe.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
+	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/BootMaintenanceManagerUiLib.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
+	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/BootMaintenanceManagerUiLib.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
+
 	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/NvmExpressDxe.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
 	cp "$UDK2018_DIR/Build/MdeModule/RELEASE_GCC49/X64/UsbMassStorageDxe.efi" "$BUILD_DIR/x64/loader/uefi/" >/dev/null 2>&1
 
