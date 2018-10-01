@@ -117,6 +117,7 @@ VOID efiDebugSplash(VOID)
     Print(L"== and beta testers, it is not recommended to install it  ==\n");
     Print(L"== on yor main computer.                                  ==\n");
     Print(L"============================================================\n");
+    PauseForKey();
 }
 
 VOID efiDebugEndSplash(VOID)
@@ -151,6 +152,7 @@ VOID efiPrintUgaProtocol(EFI_UGA_DRAW_PROTOCOL *Uga)
         Print(L"==> Color Depth: %d\n", ColorDepth);
         Print(L"==> Refresh Rate: %d\n", RefreshRate);
     }
+/** == > DEBUG: **/ PauseForKey();
 }
 
 VOID efiPrintGopProtocol(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
@@ -201,6 +203,7 @@ VOID efiPrintGopProtocol(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
         }
         Print(L" Pixels %d\n", Info->PixelsPerScanLine);
     }
+/** == > DEBUG: **/ PauseForKey();
 }
 
 //
@@ -261,6 +264,7 @@ VOID egDumpGOPVideoModes(VOID)
 /** == > DEBUG: **/ Print(L"- Mode %d: %r\n", Mode, Status);
         }
     }
+/** == > DEBUG: **/ PauseForKey();
 }
 
 // Sets the selected video mode via GOP protocol, and reconnects simple
@@ -502,7 +506,7 @@ VOID egInitScreen(VOID) {
 /** == > DEBUG: **/ Print(L"==> Looks like this machine uses the Apple Graphics Device Policy\n");
 /** == > DEBUG: **/ efiPrintUgaProtocol(UgaDraw);
     }
-
+/** == > DEBUG: **/ PauseForKey();
 /** == > DEBUG: **/ efiDebugEndSplash();
 }
 
