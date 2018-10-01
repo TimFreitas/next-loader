@@ -105,6 +105,105 @@ static EFI_CONSOLE_CONTROL_PROTOCOL_SET_MODE ConsoleControlSetMode = NULL;
 static EFI_STATUS GopSetModeAndReconnectTextOut();
 
 //
+// EFI Debugging
+//
+
+VOID efiDebugSplash(VOID)
+{
+    Print(L"============================================================\n");
+    Print(L"== NEXT LOADER - DEBUGGING                                ==\n");
+    Print(L"============================================================\n");
+    Print(L"== This version of Next Loader is intended for developers ==\n");
+    Print(L"== and beta testers, it is not recommended to install it  ==\n");
+    Print(L"== on yor main computer.                                  ==\n");
+    Print(L"============================================================\n");
+}
+
+VOID efiDebugEndSplash(VOID)
+{
+    Print(L"============================================================\n");
+    Print(L"== The debug log has been generated successfully.         ==\n");
+    Print(L"============================================================\n");
+    Print(L"== Press enter to continue.                               ==\n");
+    Print(L"============================================================\n");
+    PauseForKey();
+}
+
+VOID efiPrintUgaProtocol(EFI_UGA_DRAW_PROTOCOL *Uga)
+{
+    EFI_STATUS Status = EFI_SUCCESS;
+    UINT32 HorzResolution = 0;
+    UINT32 VertResolution = 0;
+    UINT32 ColorDepth = 0;
+    UINT32 RefreshRate = 0;
+ 
+ 
+    Status = Uga->GetMode( Uga, &HorzResolution, &VertResolution,
+                           &ColorDepth, &RefreshRate);
+
+    Print(L"==> UGA Protocol Initialization Mode:");
+ 
+    if (EFI_ERROR (Status)) {
+        Print(L"==> ERROR: UGA GetMode failed [%d]\n", Status);
+    } else {
+        Print(L"==> Horizontal Resolution: %d\n", HorzResolution);
+        Print(L"==> Vertical Resolution: %d\n", VertResolution);
+        Print(L"==> Color Depth: %d\n", ColorDepth);
+        Print(L"==> Refresh Rate: %d\n", RefreshRate);
+    }
+}
+
+VOID efiPrintGopProtocol(EFI_GRAPHICS_OUTPUT_PROTOCOL *gop)
+{
+    int i, imax;
+    EFI_STATUS Status;
+ 
+    imax = gop->Mode->MaxMode;
+ 
+    Print(L"==> Graphics Output Protocol Initialization Mode:\n");
+    Print(L"==> GOP Reports MaxMode %d\n", imax);
+ 
+    for (i = 0; i < imax; i++) {
+         EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info;
+         UINTN SizeOfInfo;
+ 
+         Status = gop->QueryMode(gop, i, &SizeOfInfo, &Info);
+         if (EFI_ERROR(Status) && Status == EFI_NOT_STARTED) {
+             gop->SetMode(gop, gop->Mode->Mode);
+             Status = gop->QueryMode(gop, i, &SizeOfInfo, &Info);
+         }
+ 
+         if (EFI_ERROR(Status)) {
+             Print(L"==> ERROR: Bad response from QueryMode: %d\n", Status);
+             continue;
+         }
+         Print(L"==> %dx%d ", Info->HorizontalResolution, Info->VerticalResolution);
+         switch(Info->PixelFormat) {
+             case PixelRedGreenBlueReserved8BitPerColor:
+                  Print(L"RGBRerserved");
+                  break;
+             case PixelBlueGreenRedReserved8BitPerColor:
+                  Print(L"BGRReserved");
+                  break;
+             case PixelBitMask:
+                  Print(L"Red:%08x Green:%08x Blue:%08x Reserved:%08x",
+                          Info->PixelInformation.RedMask,
+                          Info->PixelInformation.GreenMask,
+                          Info->PixelInformation.BlueMask,
+                          Info->PixelInformation.ReservedMask);
+                          break;
+             case PixelBltOnly:
+                  Print(L"(blt only)");
+                  break;
+             default:
+                  Print(L"(Invalid pixel format)");
+                 break;
+        }
+        Print(L" Pixels %d\n", Info->PixelsPerScanLine);
+    }
+}
+
+//
 // Screen handling
 //
 
@@ -126,9 +225,10 @@ VOID egDumpGOPVideoModes(VOID)
     // get dump
     MaxMode = GraphicsOutput->Mode->MaxMode;
     Mode = GraphicsOutput->Mode->Mode;
-    Print(L"Available graphics modes for loader.conf screen_resolution:\n");
-    Print(L"Curr. Mode = %d, Modes = %d, FB = %lx, FB size=0x%x\n",
-           Mode, MaxMode, GraphicsOutput->Mode->FrameBufferBase, GraphicsOutput->Mode->FrameBufferSize);
+
+/** == > DEBUG: **/ Print(L"==> egDumpGOPVideoModes() Function Invoked:\n");
+/** == > DEBUG: **/ Print(L"==> Available graphics modes for loader.conf screen_resolution:\n");
+/** == > DEBUG: **/ Print(L"Curr. Mode = %d, Modes = %d, FB = %lx, FB size=0x%x\n", Mode, MaxMode, GraphicsOutput->Mode->FrameBufferBase, GraphicsOutput->Mode->FrameBufferSize);
 
     for (Mode = 0; Mode < MaxMode; Mode++) {
         Status = GraphicsOutput->QueryMode(GraphicsOutput, Mode, &SizeOfInfo, &Info);
@@ -156,10 +256,9 @@ VOID egDumpGOPVideoModes(VOID)
                     break;
             }
 
-            Print(L"- Mode %d: %dx%d PixFmt = %s, PixPerScanLine = %d\n",
-                      Mode, Info->HorizontalResolution, Info->VerticalResolution, PixelFormatDesc, Info->PixelsPerScanLine);
+/** == > DEBUG: **/ Print(L"- Mode %d: %dx%d PixFmt = %s, PixPerScanLine = %d\n", Mode, Info->HorizontalResolution, Info->VerticalResolution, PixelFormatDesc, Info->PixelsPerScanLine);
         } else {
-            Print(L"- Mode %d: %r\n", Mode, Status);
+/** == > DEBUG: **/ Print(L"- Mode %d: %r\n", Mode, Status);
         }
     }
 }
@@ -178,7 +277,9 @@ static EFI_STATUS GopSetModeAndReconnectTextOut(IN UINT32 ModeNumber)
     }
 
     Status = GraphicsOutput->SetMode(GraphicsOutput, ModeNumber);
-    Print(L"Video mode change to mode #%d: %r\n", ModeNumber, Status);
+
+/** == > DEBUG: **/ Print(L"==> GopSetModeAndReconnectTextOut() Function Invoked:\n");
+/** == > DEBUG: **/ Print(L"Video mode change to mode #%d: %r\n", ModeNumber, Status);
 
     if (!EFI_ERROR (Status)) { 
         // When we change mode on GOP, we need to reconnect the drivers which produce simple text out
@@ -229,10 +330,11 @@ EFI_STATUS egSetMode(INT32 Next)
     Mode = (Mode >= (INT32)MaxMode)?0:Mode;
     Mode = (Mode < 0)?((INT32)MaxMode - 1):Mode;
     Status = GraphicsOutput->QueryMode(GraphicsOutput, (UINT32)Mode, &SizeOfInfo, &Info);
-    Print(L"QueryMode %d Status=%r\n", Mode, Status);
+/** == > DEBUG: **/ Print(L"==> egSetMode() Function Invoked:\n");
+/** == > DEBUG: **/ Print(L"QueryMode %d Status=%r\n", Mode, Status);
     if (Status == EFI_SUCCESS) {
       Status = GopSetModeAndReconnectTextOut((UINT32)Mode);
-      Print(L"SetMode %d Status=%r\n", Mode, Status);
+/** == > DEBUG: **/ Print(L"SetMode %d Status=%r\n", Mode, Status);
       egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
       egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
     }
@@ -259,7 +361,8 @@ EFI_STATUS egSetMaxResolution()
         return EFI_UNSUPPORTED;
     }
 
-    Print(L"SetMaxResolution: ");
+/** == > DEBUG: **/ Print(L"==> egSetMaxResolution() Function Invoked:\n");
+/** == > DEBUG: **/ Print(L"==> SetMaxResolution:\n");
 
     MaxMode = GraphicsOutput->Mode->MaxMode;
     for (Mode = 0; Mode < MaxMode; Mode++) {
@@ -277,11 +380,11 @@ EFI_STATUS egSetMaxResolution()
         }
     }
     
-    Print(L"Found best mode %d: %dx%d\n", BestMode, Width, Height);
+/** == > DEBUG: **/ Print(L"Found best mode %d: %dx%d\n", BestMode, Width, Height);
     
     // check if requested mode is equal to current mode
     if (BestMode == GraphicsOutput->Mode->Mode) {
-        Print(L" - already set\n");
+/** == > DEBUG: **/ Print(L" - already set\n");
         egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
         egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
         Status = EFI_SUCCESS;
@@ -291,10 +394,10 @@ EFI_STATUS egSetMaxResolution()
         if (Status == EFI_SUCCESS) {
           egScreenWidth = Width;
           egScreenHeight = Height;
-          Print(L" - set\n", Status);
+/** == > DEBUG: **/ Print(L" - set\n", Status);
         } else {
           // we can not set BestMode - search for first one that we can
-          Print(L" - %r\n", Status);
+/** == > DEBUG: **/ Print(L" - %r\n", Status);
           Status = egSetMode(1);
         }
     }
@@ -340,29 +443,33 @@ VOID egGetScreenSize(OUT UINTN *ScreenWidth, OUT UINTN *ScreenHeight) {
 VOID egInitScreen(VOID) {
     EFI_STATUS Status = EFI_SUCCESS;
 
+/** == > DEBUG: **/ efiDebugSplash();
+
+/** == > DEBUG: **/ Print(L"==> egInitScreen() Function Invoked:\n");
+
     // get protocols
     Status = LibLocateProtocol(&ConsoleControlProtocolGuid, (VOID **) &ConsoleControl);
     if (EFI_ERROR(Status)) {
         ConsoleControl = NULL;
-        Print(L"ConsoleControl !ok\n");
+/** == > DEBUG: **/ Print(L"==> Console Control can't be initialized\n");
     } else {
-        Print(L"ConsoleControl ok\n");
+/** == > DEBUG: **/ Print(L"==> Console Control was initialized\n");
     }
 
     Status = LibLocateProtocol(&UgaDrawProtocolGuid, (VOID **) &UgaDraw);
     if (EFI_ERROR(Status)) {
         UgaDraw = NULL;
-        Print(L"UgaDraw !ok\n");
+/** == > DEBUG: **/ Print(L"==> UGA Draw Protocol can't be initialized\n");
     } else {
-        Print(L"UgaDraw ok\n");
+/** == > DEBUG: **/ Print(L"==> UGA Draw Protocol was initialized\n");
     }
 
     Status = LibLocateProtocol(&GraphicsOutputProtocolGuid, (VOID **) &GraphicsOutput);
     if (EFI_ERROR(Status)) {
         GraphicsOutput = NULL;
-        Print(L"GraphicsOutput !ok\n");
+/** == > DEBUG: **/ Print(L"==> Graphics Output Protocol can't be initialized\n");
     } else {
-        Print(L"GraphicsOutput ok\n");
+/** == > DEBUG: **/ Print(L"==> Graphics Output Protocol was initialized\n");
     }
 
     // Get the screen size
@@ -374,11 +481,13 @@ VOID egInitScreen(VOID) {
         egScreenWidth = GraphicsOutput->Mode->Info->HorizontalResolution;
         egScreenHeight = GraphicsOutput->Mode->Info->VerticalResolution;
         egHasGraphics = TRUE;
-        Print(L"Looks like you are using a GOP graphics card.\n");
+/** == > DEBUG: **/ Print(L"==> Looks like you are using a GOP graphics card\n");
+/** == > DEBUG: **/ efiPrintGopProtocol(GraphicsOutput);
     } else if (UgaDraw != NULL) {
         // is there anybody ever see UGA protocol???
         UINT32 Width, Height, Depth, RefreshRate;
-        Print(L"Looks like you are using a UGA graphics card.\n");
+/** == > DEBUG: **/ Print(L"==> Looks like you are using a UGA graphics card\n");
+/** == > DEBUG: **/ efiPrintUgaProtocol(UgaDraw);
         Status = UgaDraw->GetMode(UgaDraw, &Width, &Height, &Depth, &RefreshRate);
         if (EFI_ERROR(Status)) {
             UgaDraw = NULL; // Graphics not available
@@ -388,6 +497,13 @@ VOID egInitScreen(VOID) {
             egHasGraphics = TRUE;
         }
     }
+
+    if (GraphicsOutput != NULL && UgaDraw != NULL) {
+/** == > DEBUG: **/ Print(L"==> Looks like this machine uses the Apple Graphics Device Policy\n");
+/** == > DEBUG: **/ efiPrintUgaProtocol(UgaDraw);
+    }
+
+/** == > DEBUG: **/ efiDebugEndSplash();
 }
 
 // Convert a graphics mode (in *ModeWidth) to a width and height (returned in
@@ -429,6 +545,8 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
     if ((ScreenWidth == NULL) || (ScreenHeight == NULL))
         return FALSE;
 
+/** == > DEBUG: **/ Print(L"==> egSetScreenSize() Function Invoked:\n");  
+
     if (GraphicsOutput != NULL) { // GOP mode (UEFI)
         CurrentModeNum = GraphicsOutput->Mode->Mode;
         if ( *ScreenHeight == 0) { // User specified a mode number (stored in *ScreenWidth); use it directly
@@ -457,13 +575,13 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
             egScreenHeight = *ScreenHeight;
         } else { // If unsuccessful, display an error message for the user....
             SwitchToText(FALSE);
-            Print(L"Error setting graphics mode %d x %d; using default mode!\nAvailable modes are:\n", *ScreenWidth, *ScreenHeight);
+/** == > DEBUG: **/ Print(L"Error setting graphics mode %d x %d; using default mode!\nAvailable modes are:\n", *ScreenWidth, *ScreenHeight);
             ModeNum = 0;
             
             do {
                 Status = refit_call4_wrapper(GraphicsOutput->QueryMode, GraphicsOutput, ModeNum, &Size, &Info);
                 if ((Status == EFI_SUCCESS) && (Info != NULL)) {
-                   Print(L"Mode %d: %d x %d\n", ModeNum, Info->HorizontalResolution, Info->VerticalResolution);
+/** == > DEBUG: **/ Print(L"Mode %d: %d x %d\n", ModeNum, Info->HorizontalResolution, Info->VerticalResolution);
                 } // else
             } while (++ModeNum < GraphicsOutput->Mode->MaxMode);
             
@@ -484,7 +602,7 @@ BOOLEAN egSetScreenSize(IN OUT UINTN *ScreenWidth, IN OUT UINTN *ScreenHeight) {
             // TODO: Find a list of supported modes and display it.
             // NOTE: Below doesn't actually appear unless we explicitly switch to text mode.
             // This is just a placeholder until something better can be done....
-            Print(L"Error setting graphics mode %d x %d; unsupported mode!\n", *ScreenWidth, *ScreenHeight);
+/** == > DEBUG: **/ Print(L"Error setting graphics mode %d x %d; unsupported mode!\n", *ScreenWidth, *ScreenHeight);
         } // if/else
     } // if/else if UGA mode (EFI 1.x)
 
@@ -500,19 +618,21 @@ BOOLEAN egSetTextMode(UINT32 RequestedMode) {
     EFI_STATUS Status;
     BOOLEAN ChangedIt = FALSE;
 
+/** == > DEBUG: **/ Print(L"==> egSetTextMode() Function Invoked:\n");  
+
     if ((RequestedMode != DONT_CHANGE_TEXT_MODE) && (RequestedMode != ST->ConOut->Mode->Mode)) {
         Status = refit_call2_wrapper(ST->ConOut->SetMode, ST->ConOut, RequestedMode);
         if (Status == EFI_SUCCESS) {
             ChangedIt = TRUE;
         } else {
             SwitchToText(FALSE);
-            Print(L"\nError setting text mode %d; available modes are:\n", RequestedMode);
+/** == > DEBUG: **/ Print(L"\nError setting text mode %d; available modes are:\n", RequestedMode);
             do {
                 Status = refit_call4_wrapper(ST->ConOut->QueryMode, ST->ConOut, i, &Width, &Height);
                 if (Status == EFI_SUCCESS)
-                    Print(L"Mode %d: %d x %d\n", i, Width, Height);
+/** == > DEBUG: **/ Print(L"Mode %d: %d x %d\n", i, Width, Height);
             } while (++i < ST->ConOut->Mode->MaxMode);
-            Print(L"Mode %d: Use default mode\n", DONT_CHANGE_TEXT_MODE);
+/** == > DEBUG: **/ Print(L"Mode %d: Use default mode\n", DONT_CHANGE_TEXT_MODE);
 
             PauseForKey();
             SwitchToGraphics();
